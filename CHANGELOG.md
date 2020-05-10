@@ -8,3 +8,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleasesd]
 ### Added
 - [#8268: Flaskアプリとして構築して、ヘルスチェックを実装する](https://redmine.u6k.me/issues/8268)
+- [#8398: 投票API、精算APIのダミー処理を作成する](https://redmine.u6k.me/issues/8398)
