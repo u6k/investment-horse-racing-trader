@@ -20,7 +20,7 @@ class TestFlask:
     def test_vote_invest(self):
         # Setup
         request_data = {
-            "race_id": "xxx",
+            "race_id": "2003010711",
             "dry_run": True,
         }
 
@@ -33,10 +33,14 @@ class TestFlask:
         assert result.status_code == 200
 
         result_data = json.loads(result.get_data(as_text=True))
+        assert type(result_data["vote_record_id"]) == str
+        assert result_data["race_id"] == request_data["race_id"]
         assert result_data["bet_type"] == "win"
-        assert result_data["horse_number"] == 1
-        assert result_data["vote_cost"] == 100
-        assert result_data["odds"] == 1.2
+        assert type(result_data["horse_number"]) == int
+        assert type(result_data["odds"]) == float
+        assert result_data["odds"] >= 1.0
+        assert type(result_data["vote_cost"]) == int
+        assert result_data["vote_cost"] >= 0
 
     def test_vote_close(self):
         # Setup
