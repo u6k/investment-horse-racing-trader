@@ -1,10 +1,13 @@
-from flask import Flask, request
+from flask import Flask, request, g
 from queue import Queue
 import time
 import functools
+import psycopg2
+from psycopg2.extras import DictCursor
+import os
 
 from investment_horse_racing_trader.app_logging import get_logger
-from investment_horse_racing_trader import VERSION
+from investment_horse_racing_trader import VERSION, main
 
 
 logger = get_logger(__name__)
@@ -57,18 +60,11 @@ def vote_invest():
         race_id = args.get("race_id", None)
         vote_cost_limit = args.get("vote_cost_limit", 10000)
         dry_run = args.get("dry_run", True)
-        logger.debug(f"#vote_invest: race_id={race_id}, vote_cost_limit={vote_cost_limit}, dry_run={dry_run}")  # FIXME
 
-        # FIXME
-        result = {
-            "bet_type": "win",
-            "horse_number": 1,
-            "vote_cost": 100,
-            "odds": 1.2,
-        }
-        logger.debug(f"#vote_invest: result={result}")
+        vote_result = main.vote_invest(race_id, vote_cost_limit, dry_run)
+        logger.debug(f"#vote_invest: vote_result={vote_result}")
 
-        return result
+        return vote_result
 
     except Exception:
         logger.exception("error")
@@ -99,3 +95,26 @@ def vote_close():
     except Exception:
         logger.exception("error")
         return {"result": False}, 500
+
+
+def get_db():
+    if "db" not in g:
+        g.db = psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            dbname=os.getenv("DB_DATABASE"),
+            user=os.getenv("DB_USERNAME"),
+            password=os.getenv("DB_PASSWORD")
+        )
+        g.db.autocommit = False
+        g.db.set_client_encoding("utf-8")
+        g.db.cursor_factory = DictCursor
+
+    return g.db
+
+
+@app.teardown_appcontext
+def _teardown_db(exc):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
