@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- [#8415: Flaskについて、開発時は開発モードに設定する](https://redmine.u6k.me/issues/8415)
+
 ### Changed
 - [#8399: 投票APIを実装する](https://redmine.u6k.me/issues/8399)
 
