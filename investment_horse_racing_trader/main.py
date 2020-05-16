@@ -33,13 +33,56 @@ def get_latest_asset():
         db_cursor.execute("select sum(vote_cost) as total_vote_cost, sum(vote_return) as total_vote_return from vote_record")
         (total_vote_cost, total_vote_return, ) = db_cursor.fetchone()
 
-    if total_vote_cost and total_vote_return:
+    if total_vote_cost is not None and total_vote_return is not None:
         asset = total_vote_return - total_vote_cost
     else:
         asset = 0
     logger.debug(f"#get_latest_asset: total_vote_cost={total_vote_cost}, total_vote_return={total_vote_return}, asset={asset}")
 
     return asset
+
+
+def reset_asset(asset):
+    logger.info(f"#reset_asset: start: asset={asset}")
+
+    with flask.get_db() as db_conn:
+        with db_conn.cursor() as db_cursor:
+            reset_result = {
+                "vote_record_id": str(uuid4()),
+                "before_asset": get_latest_asset(),
+                "asset": asset,
+            }
+            db_cursor.execute("""insert into vote_record (
+                vote_record_id,
+                race_id,
+                bet_type,
+                horse_number_1,
+                odds,
+                vote_cost,
+                result,
+                result_odds,
+                vote_return,
+                vote_parameter,
+                create_timestamp
+            ) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (
+                reset_result["vote_record_id"],
+                "reset_asset",
+                "reset_asset",
+                0,
+                0,
+                reset_result["before_asset"],
+                0,
+                0,
+                reset_result["asset"],
+                "reset_asset",
+                datetime.now()
+            ))
+
+            db_conn.commit()
+
+    logger.debug(f"#reset_asset: result={reset_result}")
+
+    return reset_result
 
 
 def _predict(race_id, asset, vote_cost_limit):

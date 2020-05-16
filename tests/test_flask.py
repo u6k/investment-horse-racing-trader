@@ -59,3 +59,48 @@ class TestFlask:
         result_data = json.loads(result.get_data(as_text=True))
         assert result_data["result"] == 1
         assert result_data["vote_return"] == 120
+
+    def test_get_asset(self):
+        # Execute
+        result = self.app.get("/api/asset")
+
+        # Check
+        assert result.status_code == 200
+
+        result_data = json.loads(result.get_data(as_text=True))
+        assert result_data["asset"] == 0
+
+    def test_reset_asset(self):
+        # Before check
+        result = self.app.get("/api/asset")
+        result_data = json.loads(result.get_data(as_text=True))
+        assert result_data["asset"] == 0
+
+        # Execute (1)
+        request_data = {"asset": 10000}
+        result = self.app.post("/api/asset/reset", json=request_data)
+
+        # Check (1)
+        assert result.status_code == 200
+
+        result_data = json.loads(result.get_data(as_text=True))
+        assert type(result_data["vote_record_id"]) == str
+        assert result_data["before_asset"] == 0
+        assert result_data["asset"] == 10000
+
+        # Execute (2)
+        request_data = {"asset": 1234}
+        result = self.app.post("/api/asset/reset", json=request_data)
+
+        # Check (2)
+        assert result.status_code == 200
+
+        result_data = json.loads(result.get_data(as_text=True))
+        assert type(result_data["vote_record_id"]) == str
+        assert result_data["before_asset"] == 10000
+        assert result_data["asset"] == 1234
+
+        # After check
+        result = self.app.get("/api/asset")
+        result_data = json.loads(result.get_data(as_text=True))
+        assert result_data["asset"] == 1234

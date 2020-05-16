@@ -71,6 +71,44 @@ def vote_invest():
         return {"result": False}, 500
 
 
+@app.route("/api/asset")
+@multiple_control(singleQueue)
+def get_asset():
+    logger.info("#get_asset: start")
+    try:
+
+        result = {
+            "asset": main.get_latest_asset(),
+        }
+        logger.debug(f"#get_asset: result={result}")
+
+        return result
+
+    except Exception:
+        logger.exception("error")
+        return {"result": False}, 500
+
+
+@app.route("/api/asset/reset", methods=["POST"])
+@multiple_control(singleQueue)
+def reset_asset():
+    logger.info("#reset_asset: start")
+    try:
+        args = request.get_json()
+        logger.debug(f"#reset_asset: args={args}")
+
+        asset = args.get("asset")
+
+        result = main.reset_asset(asset)
+        logger.debug(f"#reset_asset: result={result}")
+
+        return result
+
+    except Exception:
+        logger.exception("error")
+        return {"result": False}, 500
+
+
 @app.route("/api/vote/close", methods=["POST"])
 @multiple_control(singleQueue)
 def vote_close():
