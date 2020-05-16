@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - [#8399: 投票APIを実装する](https://redmine.u6k.me/issues/8399)
+- [#8182: 清算APIを実装する](https://redmine.u6k.me/issues/8182)
 
 ## [0.1.0] - 2020-05-11
 ### Added
