@@ -1,10 +1,13 @@
-from flask import Flask, request
+from flask import Flask, request, g
 from queue import Queue
 import time
 import functools
+import psycopg2
+from psycopg2.extras import DictCursor
+import os
 
 from investment_horse_racing_trader.app_logging import get_logger
-from investment_horse_racing_trader import VERSION
+from investment_horse_racing_trader import VERSION, main
 
 
 logger = get_logger(__name__)
@@ -57,16 +60,47 @@ def vote_invest():
         race_id = args.get("race_id", None)
         vote_cost_limit = args.get("vote_cost_limit", 10000)
         dry_run = args.get("dry_run", True)
-        logger.debug(f"#vote_invest: race_id={race_id}, vote_cost_limit={vote_cost_limit}, dry_run={dry_run}")  # FIXME
 
-        # FIXME
+        vote_result = main.vote_invest(race_id, vote_cost_limit, dry_run)
+        logger.debug(f"#vote_invest: vote_result={vote_result}")
+
+        return vote_result
+
+    except Exception:
+        logger.exception("error")
+        return {"result": False}, 500
+
+
+@app.route("/api/asset")
+@multiple_control(singleQueue)
+def get_asset():
+    logger.info("#get_asset: start")
+    try:
+
         result = {
-            "bet_type": "win",
-            "horse_number": 1,
-            "vote_cost": 100,
-            "odds": 1.2,
+            "asset": main.get_latest_asset(),
         }
-        logger.debug(f"#vote_invest: result={result}")
+        logger.debug(f"#get_asset: result={result}")
+
+        return result
+
+    except Exception:
+        logger.exception("error")
+        return {"result": False}, 500
+
+
+@app.route("/api/asset/reset", methods=["POST"])
+@multiple_control(singleQueue)
+def reset_asset():
+    logger.info("#reset_asset: start")
+    try:
+        args = request.get_json()
+        logger.debug(f"#reset_asset: args={args}")
+
+        asset = args.get("asset")
+
+        result = main.reset_asset(asset)
+        logger.debug(f"#reset_asset: result={result}")
 
         return result
 
@@ -84,14 +118,9 @@ def vote_close():
         args = request.get_json()
         logger.debug(f"#vote_close: args={args}")
 
-        race_id = args.get("race_id", None)
-        logger.debug(f"#vote_close: race_id={race_id}")  # FIXME
+        race_id = args.get("race_id")
 
-        # FIXME
-        result = {
-            "result": 1,
-            "vote_return": 120,
-        }
+        result = main.vote_close(race_id)
         logger.debug(f"#vote_close: result={result}")
 
         return result
@@ -99,3 +128,61 @@ def vote_close():
     except Exception:
         logger.exception("error")
         return {"result": False}, 500
+
+
+def get_db():
+    if "db" not in g:
+        g.db = psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            dbname=os.getenv("DB_DATABASE"),
+            user=os.getenv("DB_USERNAME"),
+            password=os.getenv("DB_PASSWORD")
+        )
+        g.db.autocommit = False
+        g.db.set_client_encoding("utf-8")
+        g.db.cursor_factory = DictCursor
+
+    return g.db
+
+
+def get_db_without_flask():
+    db = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_DATABASE"),
+        user=os.getenv("DB_USERNAME"),
+        password=os.getenv("DB_PASSWORD")
+    )
+    db.autocommit = False
+    db.set_client_encoding("utf-8")
+    db.cursor_factory = DictCursor
+
+    return db
+
+
+def get_crawler_db():
+    if "crawler_db" not in g:
+        g.crawler_db = psycopg2.connect(
+            host=os.getenv("CRAWLER_DB_HOST"),
+            port=os.getenv("CRAWLER_DB_PORT"),
+            dbname=os.getenv("CRAWLER_DB_DATABASE"),
+            user=os.getenv("CRAWLER_DB_USERNAME"),
+            password=os.getenv("CRAWLER_DB_PASSWORD")
+        )
+        g.crawler_db.autocommit = False
+        g.crawler_db.set_client_encoding("utf-8")
+        g.crawler_db.cursor_factory = DictCursor
+
+    return g.crawler_db
+
+
+@app.teardown_appcontext
+def _teardown_db(exc):
+    crawler_db = g.pop("crawler_db", None)
+    if crawler_db is not None:
+        crawler_db.close()
+
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
