@@ -118,14 +118,9 @@ def vote_close():
         args = request.get_json()
         logger.debug(f"#vote_close: args={args}")
 
-        race_id = args.get("race_id", None)
-        logger.debug(f"#vote_close: race_id={race_id}")  # FIXME
+        race_id = args.get("race_id")
 
-        # FIXME
-        result = {
-            "result": 1,
-            "vote_return": 120,
-        }
+        result = main.vote_close(race_id)
         logger.debug(f"#vote_close: result={result}")
 
         return result
@@ -151,8 +146,43 @@ def get_db():
     return g.db
 
 
+def get_db_without_flask():
+    db = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_DATABASE"),
+        user=os.getenv("DB_USERNAME"),
+        password=os.getenv("DB_PASSWORD")
+    )
+    db.autocommit = False
+    db.set_client_encoding("utf-8")
+    db.cursor_factory = DictCursor
+
+    return db
+
+
+def get_crawler_db():
+    if "crawler_db" not in g:
+        g.crawler_db = psycopg2.connect(
+            host=os.getenv("CRAWLER_DB_HOST"),
+            port=os.getenv("CRAWLER_DB_PORT"),
+            dbname=os.getenv("CRAWLER_DB_DATABASE"),
+            user=os.getenv("CRAWLER_DB_USERNAME"),
+            password=os.getenv("CRAWLER_DB_PASSWORD")
+        )
+        g.crawler_db.autocommit = False
+        g.crawler_db.set_client_encoding("utf-8")
+        g.crawler_db.cursor_factory = DictCursor
+
+    return g.crawler_db
+
+
 @app.teardown_appcontext
 def _teardown_db(exc):
+    crawler_db = g.pop("crawler_db", None)
+    if crawler_db is not None:
+        crawler_db.close()
+
     db = g.pop("db", None)
     if db is not None:
         db.close()
