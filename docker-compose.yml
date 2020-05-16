@@ -26,3 +26,12 @@ services:
       - "POSTGRES_USER=${DB_USERNAME}"
       - "POSTGRES_PASSWORD=${DB_PASSWORD}"
       - "POSTGRES_DB=${DB_DATABASE}"
+
+  crawler_db:
+    image: postgres:12
+    volumes:
+      - "./tests/data:/docker-entrypoint-initdb.d"
+    environment:
+      - "POSTGRES_USER=${CRAWLER_DB_USERNAME}"
+      - "POSTGRES_PASSWORD=${CRAWLER_DB_PASSWORD}"
+      - "POSTGRES_DB=${CRAWLER_DB_DATABASE}"
